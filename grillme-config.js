@@ -1,0 +1,11 @@
+// Adresse des /grillme-Servers (siehe grillme-backend/README.md), z. B. "https://.../api/grillme".
+// Leer lassen = Demo-Modus mit vorgeschriebenen Beispielantworten (keine KI).
+window.GRILLME = {
+  endpoint: "",
+  demo: {
+    sophie: {strength:"Die Idee greift ein erkennbares Problem auf.", core_critique:"Es bleibt offen, wer die Entscheidung trifft und warum bestehende Lösungen nicht reichen.", blind_spot:"Käufer, Anwender und Betroffene werden vermischt.", challenge_question:"Welchen belegbaren Grund hat deine Zielgruppe, dafür ihren bisherigen Weg zu verlassen?", next_step:"Problem und Zielgruppe in einem Satz schärfen und die zentrale Annahme mit drei Gesprächen prüfen.", missing_context:["Wer entscheidet?"]},
+    markus: {strength:"Der Ansatz lässt sich klein starten.", core_critique:"Zuständigkeit, Zeitbudget und laufender Aufwand fehlen.", blind_spot:"Einführungskosten und laufende Betreuung werden nicht getrennt betrachtet.", challenge_question:"Wer macht das ab Montag, mit welcher Zeit und woran merken wir, dass sich der Aufwand lohnt?", next_step:"Einen begrenzten Pilot mit Verantwortlichem, Zeitbudget, Nutzenindikator und Abbruchkriterium festlegen.", missing_context:["Verfügbare Zeit im Team"]},
+    lea: {strength:"Der Wunsch nach Verbesserung ist nachvollziehbar.", core_critique:"Es ist unklar, was sich für die Betroffenen ändert und was sie mitentscheiden können.", blind_spot:"Unterschiedliche Arbeitsbedingungen und Freiwilligkeit sind nicht berücksichtigt.", challenge_question:"Was ändert sich für uns wirklich, und was können wir mitentscheiden?", next_step:"Eine Transparenzregel festlegen: Was passiert mit den Ergebnissen, und wer sieht sie?", missing_context:["Wer ist betroffen?"]},
+    tim: {strength:"Es gibt einen konkreten Ansatzpunkt im Alltag.", core_critique:"Es ist offen, was dafür wegfällt, sonst bleibt es ein Zusatztermin.", blind_spot:"Doppelte Eingaben und unklare Zuständigkeiten im Ablauf.", challenge_question:"Was fällt dafür weg, und warum sollte ich das in einer vollen Woche wirklich nutzen?", next_step:"Einen konkreten Ablauf eine Woche lang ausprobieren und Zeit und Reibung notieren.", missing_context:["Aktueller Ablauf"]}
+  }
+};

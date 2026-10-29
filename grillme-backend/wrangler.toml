@@ -1,0 +1,10 @@
+name = "hr-unlearn-grillme"
+main = "grillme-worker.js"
+compatibility_date = "2025-01-01"
+
+[vars]
+# Erlaubte Seiten-Adressen, durch Komma getrennt (ohne Pfad)
+ALLOWED_ORIGIN = "https://aidadulic-ship-it.github.io"
+MODEL = "claude-sonnet-5-5"
+# Der Schlüssel wird NICHT hier eingetragen, sondern als Secret:
+#   npx wrangler secret put ANTHROPIC_API_KEY
