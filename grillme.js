@@ -8,13 +8,13 @@
   var form=document.getElementById('gm-form'),input=document.getElementById('gm-input'),btn=document.getElementById('gm-send'),msg=document.getElementById('gm-msg'),all=document.getElementById('gm-all');
   var stmt=document.getElementById('gm-stmt'),demoNote=document.getElementById('gm-demo'),roundEl=document.getElementById('gm-round');if(demoNote)demoNote.hidden=!DEMO;
   var cards={};var last='';var starting=false;
-  document.querySelectorAll('.gcard').forEach(function(el){var id=el.dataset.id;var c={el:el,body:el.querySelector('.gbody'),stat:el.querySelector('.gstat'),retry:el.querySelector('.gretry'),fu:el.querySelector('.gfu'),fuin:el.querySelector('.gfu input'),fubtn:el.querySelector('.gfu button'),idle:el.querySelector('.gidle'),statement:'',feedback:null,chat:[],busy:false,failed:null,retried:0};cards[id]=c;
+  document.querySelectorAll('.gcard').forEach(function(el){var id=el.dataset.id;var c={el:el,body:el.querySelector('.gbody'),stat:el.querySelector('.gstat'),retry:el.querySelector('.gretry'),fu:el.querySelector('.gfu'),fuin:el.querySelector('.gfu input'),fubtn:el.querySelector('.gfu button[type=submit]'),idle:el.querySelector('.gidle'),statement:'',feedback:null,chat:[],busy:false,failed:null,retried:0};cards[id]=c;
     c.retry.addEventListener('click',function(){if(c.failed&&!c.busy)run(id,c.failed)});
     c.fu.addEventListener('submit',function(e){e.preventDefault();var t=c.fuin.value.trim();if(!t||c.busy||!c.feedback)return;var chk=check(t);if(chk){setState(id,'error',chk);return}c.fuin.value='';run(id,{kind:'chat',text:t})})});
   function say(t,bad){msg.textContent=t;msg.className='gmsg'+(bad?' bad':'')}
   function check(t){if(t.length>MAX)return'Der Text ist zu lang (höchstens '+MAX+' Zeichen).';for(var i=0;i<PII.length;i++)if(PII[i].test(t))return ERR.pii_detected;return''}
   function anyBusy(){return starting||Object.keys(cards).some(function(k){return cards[k].busy})}
-  function sync(){var b=anyBusy();all.disabled=b||!last;btn.disabled=b;Object.keys(cards).forEach(function(k){var c=cards[k];c.fubtn.disabled=c.busy||!c.feedback;c.retry.disabled=c.busy})}
+  function sync(){var b=anyBusy();var mb=document.getElementById('gm-mic');if(mb)mb.disabled=b;all.disabled=b||!last;btn.disabled=b;Object.keys(cards).forEach(function(k){var c=cards[k];c.fubtn.disabled=c.busy||!c.feedback;c.retry.disabled=c.busy})}
   function setState(id,state,text){var c=cards[id];c.el.dataset.state=state;c.stat.textContent=text||'';c.retry.hidden=state!=='error'}
   function el(tag,cls,text){var e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e}
   function renderFeedback(id,fb){var c=cards[id];c.body.textContent='';var dl=el('dl','gfb');LABELS.forEach(function(l){if(!fb[l[0]])return;var row=el('div',l[0]==='challenge_question'?'gq':'');row.appendChild(el('dt','',l[1]));row.appendChild(el('dd','',fb[l[0]]));dl.appendChild(row)});
@@ -40,8 +40,34 @@
       Object.keys(cards).forEach(function(id){run(id,{kind:'grill',text:text,round:round})});say('Challenge läuft: vier unabhängige Anfragen mit derselben Runden-ID.')},
       function(e){starting=false;sync();say(ERR[e&&e.code]||'Die Runde konnte nicht gestartet werden.',true)})}
   function parse(v){v=v.trim();var m=/^\/grillme(?:\s+([\s\S]+))?$/i.exec(v);if(!m)return{err:'Beginne mit /grillme, zum Beispiel: /grillme Wir ersetzen das Jahresgespräch durch monatliche Check-ins.'};if(m[1]&&m[1].trim())return{text:m[1].trim()};if(last)return{text:last};return{err:'Noch keine Aussage eingereicht. Schreibe /grillme gefolgt von deiner Idee.'}}
-  form.addEventListener('submit',function(e){e.preventDefault();if(anyBusy())return;var p=parse(input.value);if(p.err){say(p.err,true);return}var chk=check(p.text);if(chk){say(chk,true);return}input.value='';challenge(p.text)});
+  form.addEventListener('submit',function(e){e.preventDefault();if(anyBusy())return;if(typeof stopMic==='function')stopMic();var p=parse(input.value);if(p.err){say(p.err,true);return}var chk=check(p.text);if(chk){say(chk,true);return}input.value='';challenge(p.text)});
   all.addEventListener('click',function(){if(anyBusy()||!last)return;challenge(last)});
   document.querySelectorAll('.gex').forEach(function(b){b.addEventListener('click',function(){input.value='/grillme '+b.dataset.t;input.focus()})});
+
+  // ---- Spracheingabe (Browser-Spracherkennung, kein eigener Server)
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;var activeMic=null;
+  var MICERR={'not-allowed':'Das Mikrofon ist nicht freigegeben. Erlaube es in der Adressleiste deines Browsers.','service-not-allowed':'Die Spracherkennung ist in diesem Browser nicht erlaubt.','no-speech':'Ich habe nichts gehört. Versuche es noch einmal.','audio-capture':'Kein Mikrofon gefunden.','network':'Die Spracherkennung braucht eine Internetverbindung.','language-not-supported':'Die Sprache wird nicht unterstützt.'};
+  function stopMic(){if(activeMic)activeMic.stop()}
+  function attachMic(btn,inputEl,opts){
+    if(!SR){btn.hidden=true;return}
+    var rec=null,base='',finals='';
+    function say_(t,bad){opts.say(t,bad)}
+    function setUi(on){btn.setAttribute('aria-pressed',on?'true':'false');btn.classList.toggle('on',on);btn.title=on?'Aufnahme beenden':'Sprechen';inputEl.classList.toggle('listening',on)}
+    function compose(interim){var t=(finals+' '+interim).trim();if(opts.prefix&&t&&!/^\/grillme\b/i.test(t))t='/grillme '+t;inputEl.value=(base?base+' ':'')+t}
+    btn.addEventListener('click',function(){
+      if(rec){rec.stop();return}
+      if(activeMic)activeMic.stop();
+      rec=new SR();rec.lang='de-AT';rec.interimResults=true;rec.continuous=true;rec.maxAlternatives=1;
+      base=opts.prefix?'':inputEl.value.trim();finals='';var failed=false;
+      rec.onstart=function(){activeMic=rec;setUi(true);say_('Ich höre zu. Sprich deinen Text und tippe zum Beenden noch einmal auf das Mikrofon.')};
+      rec.onresult=function(e){var interim='';for(var i=e.resultIndex;i<e.results.length;i++){var r=e.results[i];if(r.isFinal)finals+=(finals?' ':'')+r[0].transcript.trim();else interim+=r[0].transcript}compose(interim.trim())};
+      rec.onerror=function(e){failed=true;say_(MICERR[e.error]||'Die Spracheingabe ist fehlgeschlagen.',true)};
+      rec.onend=function(){setUi(false);if(activeMic===rec)activeMic=null;rec=null;inputEl.value=inputEl.value.trim();if(!failed&&inputEl.value)say_('Prüfe den erkannten Text, korrigiere ihn bei Bedarf und sende ihn dann ab. Er wird nicht automatisch gesendet.');inputEl.focus()};
+      try{rec.start()}catch(err){rec=null;setUi(false);say_('Die Spracheingabe konnte nicht gestartet werden.',true)}
+    });
+  }
+  attachMic(document.getElementById('gm-mic'),input,{prefix:true,say:say});
+  Object.keys(cards).forEach(function(id){var c=cards[id];attachMic(c.fu.querySelector('.gmic'),c.fuin,{prefix:false,say:function(t,bad){c.stat.textContent=t;c.stat.className='gstat'+(bad?' bad':'')}})});
+  if(!SR){var hint=document.getElementById('gm-nomic');if(hint)hint.hidden=false}
   sync();
 })();
